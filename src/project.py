@@ -3,8 +3,12 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox as msg
 import json
-from pandastable import Table
-# from tkintertable import TableCanvas
+import re
+import string
+import nltk.corpus as stopwords
+
+#regex = re.compile('[%s]' % re.escape(string.punctuation))
+#achedStopWords = stopwords.words('english')
 
 
 class TwitterApplication:
@@ -22,14 +26,28 @@ class TwitterApplication:
         self.message_label = Label(self.f,
                                    text='Twitter Tool',
                                    font=('Arial', 19, 'bold'))
+        self.message_label2 = Label(self.f,
+                                    text='Clean .csv file.',
+                                    font=('Arial', 12, 'underline'))
+        self.message_label3 = Label(self.f,
+                                    text='Convert .csv file to .json.',
+                                    font=('Arial', 12, 'underline'))
 
         # Buttons
+        self.clean_button = Button(self.f,
+                                   text='Clean',
+                                   font=('Arial', 14),
+                                   bg='Red',
+                                   fg='Black',
+                                   command=self.clean_csv)
+
         self.convert_button = Button(self.f,
                                      text='Convert',
                                      font=('Arial', 14),
                                      bg='Orange',
                                      fg='Black',
                                      command=self.convert_csv_to_json)
+
         self.k_means_button = Button(self.f,
                                      text='K-Means',
                                      font=('Arial', 14),
@@ -37,12 +55,53 @@ class TwitterApplication:
                                      fg='Black',
                                      command=self.k_means)
 
+        self.ida_button = Button(self.f,
+                                 text='IDA',
+                                 font=('Arial', 14),
+                                 bg='Blue',
+                                 fg='Black',
+                                 command=self.k_means)
+
         # Placing the widgets using grid manager
-        self.message_label.grid(row=1, column=0)
-        self.convert_button.grid(row=4, column=0,
+        self.message_label.grid(row=0, column=1)
+        self.message_label2.grid(row=2, column=1)
+        self.clean_button.grid(row=4, column=1,
+                               padx=0, pady=15)
+        self.message_label3.grid(row=5, column=1)
+        self.convert_button.grid(row=6, column=1,
                                  padx=0, pady=15)
-        self.k_means_button.grid(row=4, column=1,
+        self.k_means_button.grid(row=8, column=0,
                                  padx=10, pady=15)
+        self.ida_button.grid(row=8, column=2,
+                             padx=10, pady=15)
+
+    def clean_csv(self):
+        try:
+            self.file_name = filedialog.askopenfilename(initialdir='/Desktop',
+                                                        title='Select a CSV file',
+                                                        filetypes=(('csv file', '*.csv'),
+                                                                   ('csv file', '*.csv')))
+
+            col_list = ["text"]
+            clean_tweets = []
+            df = pd.read_csv(self.file_name, usecols=col_list)
+
+            if len(df) == 0:
+                msg.showinfo('No Rows Selected', 'CSV is empty.')
+            else:
+
+                #msg.showinfo('File selected', 'CSV file selected to be cleaned.')
+                for tweet in df["text"]:
+                    # https://www.earthdatascience.org/courses/use-data-open-source-python/intro-to-apis/analyze-tweet-sentiment-in-python/
+                    tweet = (re.sub("([^0-9A-Za-z \t])|(\w+:\/\/\S+)", "", tweet).split())
+                    clean_tweets.append(tweet)
+
+                df['text'] = clean_tweets
+                df.to_csv("../JSON-CSV-files/clean_csv.csv", index=False)
+                msg.showinfo('File', 'File has been cleaned. Ready to be converted.')
+
+        except FileNotFoundError as e:
+            msg.showerror('Error opening file', e)
 
     def convert_csv_to_json(self):
         try:
@@ -51,18 +110,18 @@ class TwitterApplication:
                                                         filetypes=(('csv file', '*.csv'),
                                                                    ('csv file', '*.csv')))
 
+            clean_tweets = []
             col_list = ["text"]
             df = pd.read_csv(self.file_name, usecols=col_list)
 
             # Next - Pandas DF to Excel file on disk
             if len(df) == 0:
-                msg.showinfo('No Rows Selected', 'CSV has no rows')
+                msg.showinfo('No Rows Selected', 'CSV is empty.')
             else:
-                # msg.showinfo('CSV file selected', 'CSV file selected')
                 createjson = df.to_json()
 
                 # print(createjson)
-                with open("../CSV and JSON files/TwitterTextData.json", 'w') as write_file:
+                with open("../JSON-CSV-files/TwitterDataJson.json", 'w') as write_file:
                     json.dump(createjson, write_file)
                 msg.showinfo('JSON file created', 'JSON file created')
 

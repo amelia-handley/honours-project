@@ -2,18 +2,30 @@ import pandas as pd
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox as msg
-import json
+import json, csv
 import re
-import string
-import nltk.corpus as stopwords
+import matplotlib as plt
+import numpy as np
+import sklearn.cluster import KMeans
 
-#regex = re.compile('[%s]' % re.escape(string.punctuation))
-#achedStopWords = stopwords.words('english')
+import nltk
+from nltk.stem import WordNetLemmatizer, PorterStemmer
+from nltk.corpus import stopwords
 
+nltk.download('wordnet')
+nltk.download('stopwords')
+
+w_tokenizer = nltk.tokenize.WhitespaceTokenizer()
+lemmatizer = nltk.stem.WordNetLemmatizer()
 
 class TwitterApplication:
 
     def __init__(self, root):
+
+        """ Code to Create GUI in Python was taken from:
+        https://www.geeksforgeeks.org/create-a-gui-to-convert-csv-file-into-excel-file-using-python/
+        Last accessed: 28/01/2021
+        """
 
         self.root = root
         self.filename = ''
@@ -31,6 +43,9 @@ class TwitterApplication:
                                     font=('Arial', 12, 'underline'))
         self.message_label3 = Label(self.f,
                                     text='Convert .csv file to .json.',
+                                    font=('Arial', 12, 'underline'))
+        self.message_label4 = Label(self.f,
+                                    text='Algorithms',
                                     font=('Arial', 12, 'underline'))
 
         # Buttons
@@ -55,8 +70,8 @@ class TwitterApplication:
                                      fg='Black',
                                      command=self.k_means)
 
-        self.ida_button = Button(self.f,
-                                 text='IDA',
+        self.lda_button = Button(self.f,
+                                 text='LDA',
                                  font=('Arial', 14),
                                  bg='Blue',
                                  fg='Black',
@@ -70,10 +85,14 @@ class TwitterApplication:
         self.message_label3.grid(row=5, column=1)
         self.convert_button.grid(row=6, column=1,
                                  padx=0, pady=15)
-        self.k_means_button.grid(row=8, column=0,
+        self.message_label4.grid(row=8, column=1)
+        self.k_means_button.grid(row=9, column=0,
                                  padx=10, pady=15)
-        self.ida_button.grid(row=8, column=2,
+        self.lda_button.grid(row=9, column=2,
                              padx=10, pady=15)
+
+    def lemmatize_text(self):
+        return [lemmatizer.lemmatize(w) for w in w_tokenizer.tokenize(self)]
 
     def clean_csv(self):
         try:
@@ -85,16 +104,23 @@ class TwitterApplication:
             col_list = ["text"]
             clean_tweets = []
             df = pd.read_csv(self.file_name, usecols=col_list)
+            stop_words = set(stopwords.words('english'))
 
             if len(df) == 0:
                 msg.showinfo('No Rows Selected', 'CSV is empty.')
             else:
 
-                #msg.showinfo('File selected', 'CSV file selected to be cleaned.')
+                # msg.showinfo('File selected', 'CSV file selected to be cleaned.')
                 for tweet in df["text"]:
-                    # https://www.earthdatascience.org/courses/use-data-open-source-python/intro-to-apis/analyze-tweet-sentiment-in-python/
-                    tweet = (re.sub("([^0-9A-Za-z \t])|(\w+:\/\/\S+)", "", tweet).split())
-                    clean_tweets.append(tweet)
+                    """ Code taken to clean tweet data was taken from:
+                    https://www.earthdatascience.org/courses/use-data-open-source-python/intro-to-apis/analyze-tweet-sentiment-in-python/
+                    Last accessed: 03/02/2021
+                    
+                    To remove URLs and non-alphanumeric characters
+                    """
+                    tweet = (re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)|(rt)", "", tweet.lower()).split())
+                    # Removing Stop Words
+                    clean_tweets.append(set(tweet).difference(stop_words))
 
                 df['text'] = clean_tweets
                 df.to_csv("../JSON-CSV-files/clean_csv.csv", index=False)
@@ -118,10 +144,10 @@ class TwitterApplication:
             if len(df) == 0:
                 msg.showinfo('No Rows Selected', 'CSV is empty.')
             else:
-                createjson = df.to_json()
 
+                createjson = df.to_json()
                 # print(createjson)
-                with open("../JSON-CSV-files/TwitterDataJson.json", 'w') as write_file:
+                with open("../JSON-CSV-files/TwitterDataJson.json", 'r') as write_file:
                     json.dump(createjson, write_file)
                 msg.showinfo('JSON file created', 'JSON file created')
 
@@ -130,6 +156,8 @@ class TwitterApplication:
 
     def k_means(self):
         try:
+            # https://github.com/Ashwanikumarkashyap/k-means-clustering-tweets-from-scratch/blob/master/main.py
+
             self.file_name = filedialog.askopenfilename(initialdir='/Desktop',
                                                         title='Select a JSON file',
                                                         filetypes=(('json file', '*.json'),
@@ -142,23 +170,19 @@ class TwitterApplication:
             else:
                 msg.showinfo('Json file selected', 'Json file selected')
 
-            """
-            # Now display the DF in 'Table' object
-            # under 'pandastable' module
-            self.f2 = Frame(self.root, height=200, width=300)
-            self.f2.pack(file=BOTH, expand=1)
-            self.table = Table(self.f2, dataframe=df, read_only=True)
-            self.table.show()
-            """
-
         except FileNotFoundError as e:
             print(e)
             msg.showerror('Error opening file')
 
+    """    
+    def lda(self):
+    
+    """
+
 
 # Driver Code
 root = Tk()
-root.title('Tweet Application')
+root.title('Twitter Visualisation Tool')
 
 obj = TwitterApplication(root)
 root.geometry('600x600')

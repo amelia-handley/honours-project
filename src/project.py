@@ -1,28 +1,25 @@
-import matplotlib
+import matplotlib as plt
 import pandas as pd
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox as msg
-import json, csv
-import re, random
+import csv
+import re
+import pyLDAvis
+import pyLDAvis.sklearn
 
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
-from sklearn.metrics import adjusted_rand_score
 import nltk
 from nltk.stem import WordNetLemmatizer, PorterStemmer
-from nltk.stem.snowball import SnowballStemmer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from nltk.stem.snowball import SnowballStemmer
-from nltk.corpus import stopwords
-from spacy.lang.en.tokenizer_exceptions import word
+from nltk.corpus import stopwords, wordnet
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
 
 nltk.download('wordnet')
 nltk.download('stopwords')
-lemmatizer = WordNetLemmatizer()
 
 
 class TwitterApplication:
@@ -48,11 +45,7 @@ class TwitterApplication:
         self.message_label2 = Label(self.f,
                                     text='Clean .csv file.',
                                     font=('Arial', 12, 'underline'))
-        """
-        self.message_label3 = Label(self.f,
-                                    text='Convert .csv file to .json.',
-                                    font=('Arial', 12, 'underline'))
-        """
+
         self.message_label4 = Label(self.f,
                                     text='Algorithms',
                                     font=('Arial', 12, 'underline'))
@@ -64,15 +57,6 @@ class TwitterApplication:
                                    bg='Red',
                                    fg='Black',
                                    command=self.clean_csv)
-
-        """
-        self.convert_button = Button(self.f,
-                                     text='Convert',
-                                     font=('Arial', 14),
-                                     bg='Orange',
-                                     fg='Black',
-                                     command=self.convert_csv_to_json)
-        """
 
         self.k_means_button = Button(self.f,
                                      text='K-Means',
@@ -93,11 +77,6 @@ class TwitterApplication:
         self.message_label2.grid(row=2, column=1)
         self.clean_button.grid(row=4, column=1,
                                padx=0, pady=15)
-        """
-        self.message_label3.grid(row=5, column=1)
-        self.convert_button.grid(row=6, column=1,
-                                 padx=0, pady=15)
-        """
         self.message_label4.grid(row=8, column=1)
         self.k_means_button.grid(row=9, column=0,
                                  padx=10, pady=15)
@@ -108,40 +87,6 @@ class TwitterApplication:
         lemmatizer = WordNetLemmatizer()
         return [lemmatizer.lemmatize(w) for w in self.split()]
 
-    """
-    def remove_links(self):
-        '''Takes a string and removes web links from it'''
-        self = re.sub(r'http\S+', '', self)  # remove http links
-        self = re.sub(r'bit.ly/\S+', '', self)  # rempve bitly links
-        self = self.strip('[link]')  # remove [links]`
-        return self
-
-    def remove_users(self):
-        # Takes a string and removes retweet and @user information
-        self = re.sub('(RT\s@[A-Za-z]+[A-Za-z0-9-_]+)', " ", self)  # remove retweet
-        self = re.sub('(@[A-Za-z]+[A-Za-z0-9-_]+)', '', self)  # remove tweeted at
-        return self
-
-    # cleaning master function
-    def clean_tweet(self, bigrams=False):
-        self = self.remove_users(self)
-        self = self.remove_links(self)
-        self = self.lower()  # lower case
-        self = re.sub('[' + my_punctuation + ']+', ' ', self)  # strip punctuation
-        self = re.sub('\s+', ' ', self)  # remove double spacing
-        self = re.sub('([0-9]+)', '', self)  # remove numbers
-        tweet_token_list = [word for word in self.split(' ')
-                            if word not in my_stopwords]  # remove stopwords
-
-        tweet_token_list = [word_rooter(word) if '#' not in word else word
-                            for word in tweet_token_list]  # apply word rooter
-        if bigrams:
-            tweet_token_list = tweet_token_list + [tweet_token_list[i] + '_' + tweet_token_list[i + 1]
-                                                   for i in range(len(tweet_token_list) - 1)]
-        self = ' '.join(tweet_token_list)
-        return self
-        """
-
     def clean_csv(self):
         try:
             self.file_name = filedialog.askopenfilename(initialdir='/Desktop',
@@ -150,12 +95,13 @@ class TwitterApplication:
                                                                    ('csv file', '*.csv')))
 
             col_list = ["text"]
-            clean_stop_words_tweets = []
-            clean_lemmatizer_tweets = []
+            array = []
             df = pd.read_csv(self.file_name, usecols=col_list)
             stop_words = set(stopwords.words('english'))
-            #newStopWords = ('amp', 'rt')
-           # stopwords.append(newStopWords)
+            # newStopWords = ('amp', 'rt')
+            # stopwords.update(newStopWords)
+            lemmatizer = WordNetLemmatizer()
+            ps = PorterStemmer()
 
             if len(df) == 0:
                 msg.showinfo('No Rows Selected', 'CSV file has no data.')
@@ -170,57 +116,35 @@ class TwitterApplication:
 
                     tweet = (re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)|^rt|http.+?", "",
                                     tweet.lower()).split())
-                    #clean_stop_words_tweets.append(set(tweet).difference(stop_words))
+                    # clean_tweets.append(set(tweet).difference(stop_words))
                     filtered_sentence = [w for w in tweet if not w in stop_words]
-                    #print(filtered_sentence)
+                    array.append(filtered_sentence)
+
+                    """
+                    #array = []
                     for word in filtered_sentence:
-                        clean_lemmatizer_tweets = (lemmatizer.lemmatize(word))
-                        print(clean_lemmatizer_tweets)
+                        test = lemmatizer.lemmatize(word, wordnet.VERB)
+                        stem_test = 
+                        nltk_tokens = nltk.word_tokenize(test)
+                        
+                    
+                    array.append(nltk_tokens)
+                    #print(array)"""
 
-                # Create a new dataframe of the cleaned dataset
-                df['text'] = clean_lemmatizer_tweets
-                # Add to file called clean_csv
-                df.to_csv("../JSON-CSV-files/clean_csv.csv", index=False)
-                msg.showinfo('File', 'File has been cleaned. Ready to be converted.')
 
-        except FileNotFoundError as e:
-            msg.showerror('Error opening file', e)
+            with open('../JSON-CSV-files/clean_csv.csv', 'w') as csvfile:
+                 writer = csv.writer(csvfile)
+                 writer.writerow(array)
 
-    """
-    def convert_csv_to_json(self):
-        try:
-            self.file_name = filedialog.askopenfilename(initialdir='/Desktop',
-                                                        title='Select a CSV file',
-                                                        filetypes=(('csv file', '*.csv'),
-                                                                   ('csv file', '*.csv')))
-            clean_tweets = []
-            col_list = ["text"]
-            df = pd.read_csv(self.file_name, usecols=col_list)
-
-            # Next - Pandas DF to Excel file on disk
-            if len(df) == 0:
-                msg.showinfo('No Rows Selected', 'CSV is empty.')
-            else:
-                createjson = df.to_json()
-                # print(createjson)
-                with open("../JSON-CSV-files/TwitterDataJson.json", 'r') as write_file:
-                    json.dump(createjson, write_file)
-                msg.showinfo('JSON file created', 'JSON file created')
+            # Create a new dataframe of the cleaned dataset
+            #df['text'] = array
+            # Add to file called clean_csv
+            clean_file = r"../JSON-CSV-files/clean_csv.csv"
+            # df.to_csv(clean_file, index=False)
+            msg.showinfo('File', 'File has been cleaned. Ready to be converted.')
 
         except FileNotFoundError as e:
-            msg.showerror('Error opening file', e)
-
-    def tokenize_and_stem(text):
-        # first tokenize by sentence, then by word to ensure that punctuation is caught as it's own token
-        tokens = [word for sent in nltk.sent_tokenize(text) for word in nltk.word_tokenize(sent)]
-        filtered_tokens = []
-        # filter out any tokens not containing letters (e.g., numeric tokens, raw punctuation)
-        for token in tokens:
-            if re.search('[a-zA-Z]', token):
-                filtered_tokens.append(token)
-        stems = [stemmer.stem(t) for t in filtered_tokens]
-        return stems
-    """
+             msg.showerror('Error opening file', e)
 
     """
         Using the Sklearn library to create the K-Means algorithm
@@ -233,21 +157,26 @@ class TwitterApplication:
                                                         title='Select a CSV file',
                                                         filetypes=(('csv file', '*.csv'),
                                                                    ('csv file', '*.csv')))
-            # Only look at the "text" column in the file
-            col_list = ["text"]
-            # Read CSV file
-            df = pd.read_csv(self.file_name, usecols=col_list)
+
+            #col_list = ["text"]
+            array = []
+            df = pd.read_csv(self.file_name)
+            stop_words = set(stopwords.words('english'))
+            # newStopWords = ('amp', 'rt')
+            # stopwords.update(newStopWords)
+            lemmatizer = WordNetLemmatizer()
+            ps = PorterStemmer()
 
             vectorizer = TfidfVectorizer(stop_words='english')
             X = vectorizer.fit_transform(df)
 
-            true_k = 5  # Since there is only one sample
+            true_k = 10  # Create 10 clusters
             model = KMeans(n_clusters=true_k, init='k-means++', max_iter=100, n_init=1)
             model.fit(X)
 
             # https://pythonprogramminglanguage.com/kmeans-text-clustering/
 
-            print("Top terms per cluster: ")
+            print(f"Top terms per cluster: ")
             order_centroids = model.cluster_centers_.argsort()[:, ::-1]
             terms = vectorizer.get_feature_names()
             for i in range(true_k):
@@ -255,6 +184,17 @@ class TwitterApplication:
                 for ind in order_centroids[i, :10]:
                     print(' %s' % terms[ind])
                 print()
+
+            # plt.subplots(figsize=(20,20))
+            wordcloud = WordCloud(stopwords=stopwords,
+                                  background_color='white',
+                                  width=512,
+                                  height=384
+                                  ).generate(model)
+            plt.imshow(wordcloud, interpolation='bilinear')
+            plt.axis('off')
+
+            plt.show()
 
         except FileNotFoundError as e:
             msg.showerror('Error opening file', e)
@@ -270,28 +210,32 @@ class TwitterApplication:
                                                         filetypes=(('csv file', '*.csv'),
                                                                    ('csv file', '*.csv')))
 
-            col_list = ["text"]
-            df = pd.read_csv(self.file_name, usecols=col_list)
+            df = pd.read_csv(self.file_name)
 
+            # https://stackabuse.com/python-for-nlp-topic-modeling/
             # count_vect = CountVectorizer(max_df=0.8, min_df=2, stop_words='english')
             count_vect = CountVectorizer(max_df=0.8, min_df=2)
-            doc_term_matrix = count_vect.fit_transform(df['text'].values.astype('U'))
+            doc_term_matrix = count_vect.fit_transform(df["text"].values.astype('U'))
 
-            LDA = LatentDirichletAllocation(n_components=5, random_state=42)
-            LDA.fit(doc_term_matrix)
+            # Create 10 Topics
+            number_of_topics = 10
+            LDA = LatentDirichletAllocation(n_components=number_of_topics, learning_method='online', random_state=42,
+                                            n_jobs=-1)
+            LDA_output = LDA.fit(doc_term_matrix)
+            # print(LDA_output)
 
-           # for i in range(10):
-                # random_id = random.randint(0,len(count_vect.get_feature_names()))
-                # print(count_vect.get_feature_names()[random_id])
-            #first_topic = LDA.components_[0]
-            #top_topic_words = first_topic.argsort()[-10:]
-            # for i in top_topic_words:
-            #   print(count_vect.get_feature_names()[i])
-
-            for i,topic in enumerate(LDA.components_):
+            """
+            for i, topic in enumerate(LDA.components_):
                 print(f"Top 10 words for topic #{i}")
                 print([count_vect.get_feature_names()[i] for i in topic.argsort()[-10:]])
-                print("\n")
+                print("\n")"""
+
+            # Visualise the topics
+            pyLDAvis.enable_notebook()
+
+            visualisation = pyLDAvis.sklearn.prepare(LDA_output, doc_term_matrix, mds='tsne')
+            # visualisation = pyLDAvis.gensim.prepare(lda_model, corpus, dictionary)
+            pyLDAvis.save_html(visualisation, 'LDA_Visualization.html')
 
         except FileNotFoundError as e:
             msg.showerror('Error opening file', e)

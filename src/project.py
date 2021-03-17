@@ -102,9 +102,8 @@ class TwitterApplication:
             array = []
             df = pd.read_csv(self.file_name, usecols=col_list)
             stopwords = nltk.corpus.stopwords.words('english')
-            newStopWords = ['amp', 'rt', 'http']
+            newStopWords = ['amp', 'rt', 'https', 'http']
             stopwords.append(newStopWords)
-
             lemmatizer = WordNetLemmatizer()
             ps = PorterStemmer()
 
@@ -173,11 +172,11 @@ class TwitterApplication:
             print(f"Top terms per cluster: ")
             order_centroids = data.cluster_centers_.argsort()[:, ::-1]
             terms = vectorizer.get_feature_names()
-            for i in range(n_clusters):
-                print("Cluster %d:" % i),
-                for ind in order_centroids[i, :10]:
-                    print(' %s' % terms[ind])
-                print()
+           # for i in range(n_clusters):
+            #    print("Cluster %d:" % i),
+            #   for ind in order_centroids[i, :10]:
+             #       print(' %s' % terms[ind])
+              #  print()
 
             # https://stackoverflow.com/questions/43541187/how-can-i-plot-a-kmeans-text-clustering-result-with-matplotlib/45510082
             tsne_init = 'pca'
@@ -260,5 +259,5 @@ root = Tk()
 root.title('Twitter Visualisation Tool')
 
 obj = TwitterApplication(root)
-root.geometry('600x600')
+root.geometry('600x300')
 root.mainloop()

@@ -232,6 +232,7 @@ class TwitterApplication:
 
             # Create 10 Topics
             number_of_topics = 10
+
             LDA = LatentDirichletAllocation(n_components=number_of_topics, learning_method='online', random_state=42,
                                             n_jobs=-1)
             LDA_output = LDA.fit(doc_term_matrix)
@@ -248,7 +249,7 @@ class TwitterApplication:
 
             visualisation = pyLDAvis.sklearn.prepare(LDA_output, doc_term_matrix, count_vect, mds='tsne')
             # visualisation = pyLDAvis.gensim.prepare(lda_model, corpus, dictionary)
-            pyLDAvis.save_html(visualisation, 'LDA_Visualization.html')
+            pyLDAvis.save_html(visualisation, 'Visualisations/LDA_Visualization.html')
 
         except FileNotFoundError as e:
             msg.showerror('Error opening file', e)

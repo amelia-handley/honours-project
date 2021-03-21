@@ -62,13 +62,6 @@ class TwitterApplication:
                                    fg='Black',
                                    command=self.clean_csv)
 
-        self.k_means_button = Button(self.f,
-                                     text='K-Means',
-                                     font=('Arial', 14),
-                                     bg='Green',
-                                     fg='Black',
-                                     command=self.k_means)
-
         self.lda_button = Button(self.f,
                                  text='LDA',
                                  font=('Arial', 14),
@@ -82,14 +75,16 @@ class TwitterApplication:
         self.clean_button.grid(row=4, column=1,
                                padx=0, pady=15)
         self.message_label4.grid(row=8, column=1)
-        self.k_means_button.grid(row=9, column=0,
-                                 padx=10, pady=15)
         self.lda_button.grid(row=9, column=2,
                              padx=10, pady=15)
 
-    def lemmatize_text(self):
-        lemmatizer = WordNetLemmatizer()
-        return [lemmatizer.lemmatize(w) for w in self.split()]
+    """ 
+ 
+     DATA CLEANING
+     
+     1. 
+     
+    """
 
     def clean_csv(self):
         try:
@@ -121,20 +116,11 @@ class TwitterApplication:
                                     tweet.lower()).split())
                     # clean_tweets.append(set(tweet).difference(stop_words))
                     filtered_sentence = [w for w in tweet if not w in stopwords]
-                    array.append(filtered_sentence)
 
-                    # lemmatizer.lemmatize()
-                    """
-                    array = []
                     for word in filtered_sentence:
                         test = lemmatizer.lemmatize(word, wordnet.VERB)
-                        stem = ps.stem(test)
-                        nltk_tokens = nltk.word_tokenize(stem)
-                    array.append(nltk_tokens) """
-
-            # with open('../JSON-CSV-files/clean_csv.csv', 'w') as csvfile:
-            #   writer = csv.writer(csvfile)
-            #   writer.writerow(array)
+                        nltk_tokens = nltk.word_tokenize(test)
+                    array.append(nltk_tokens)
 
             # Create a new dataframe of the cleaned dataset
             df['text'] = array
@@ -147,72 +133,16 @@ class TwitterApplication:
             msg.showerror('Error opening file', e)
 
     """
-        Using the Sklearn library to create the K-Means algorithm
-    """
-
-    def k_means(self):
-        try:
-            # https://github.com/Ashwanikumarkashyap/k-means-clustering-tweets-from-scratch/blob/master/main.py
-            # Allow user to find the CSV file they wish to apply K-Means to
-            self.file_name = filedialog.askopenfilename(initialdir='/Desktop',
-                                                        title='Select a CSV file',
-                                                        filetypes=(('csv file', '*.csv'),
-                                                                   ('csv file', '*.csv')))
-
-            df = pd.read_csv(self.file_name)
-            vectorizer = TfidfVectorizer(stop_words='english')
-            X = vectorizer.fit_transform(df)
-            n_clusters = 10  # Create 10 clusters
-            random_state = 1
-            clf = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=100, n_init=1)
-            data = clf.fit(X)
-            centroids = clf.cluster_centers_
-            everything = concatenate((X.todense(), centroids))
-
-            print(f"Top terms per cluster: ")
-            order_centroids = data.cluster_centers_.argsort()[:, ::-1]
-            terms = vectorizer.get_feature_names()
-           # for i in range(n_clusters):
-            #    print("Cluster %d:" % i),
-            #   for ind in order_centroids[i, :10]:
-             #       print(' %s' % terms[ind])
-              #  print()
-
-            # https://stackoverflow.com/questions/43541187/how-can-i-plot-a-kmeans-text-clustering-result-with-matplotlib/45510082
-            tsne_init = 'pca'
-            tsne_perplexity = 20.0
-            tsne_early_exaggeration = 4.0
-            tsne_learning_rate = 1000
-            model = TSNE(n_components=2, random_state=random_state, init=tsne_init,
-                         perplexity=tsne_perplexity,
-                         early_exaggeration=tsne_early_exaggeration, learning_rate=tsne_learning_rate)
-
-            transformed_everything = model.fit_transform(everything)
-            print(transformed_everything)
-            plt.scatter(transformed_everything[:-n_clusters, 0], transformed_everything[:-n_clusters, 1], marker='x')
-            plt.scatter(transformed_everything[-n_clusters:, 0], transformed_everything[-n_clusters:, 1], marker='o')
-
-            plt.show()
-
-            # https://pythonprogramminglanguage.com/kmeans-text-clustering/
-
-            """
-            # plt.subplots(figsize=(20,20))
-            wordcloud = WordCloud(stopwords=stopwords,
-                                  background_color='white',
-                                  width=512,
-                                  height=384
-                                  ).generate(model)
-            plt.imshow(wordcloud, interpolation='bilinear')
-            plt.axis('off')"""
-
-            plt.show()
-
-        except FileNotFoundError as e:
-            msg.showerror('Error opening file', e)
-
-    """
-        Latent-Dirichlet Allocation using the Sklearn library
+         DATA PROCESSING
+            
+         1. Build a dictionary with all the words in the dataset
+         2. Sort the word counts (using the dictionary created) of each tweet in a corpus.
+            
+          Algorithm used is the Latent-Dirichlet Allocation, a topic modelling algorithm which learns the latent 
+          topics of a group of documents, ideal for unlabeled data like that from a twitter dataset.
+            
+         # https://ourcodingclub.github.io/tutorials/topic-modelling-python/
+            
     """
 
     def lda(self):
@@ -225,31 +155,33 @@ class TwitterApplication:
 
             df = pd.read_csv(self.file_name)
 
+            """
+                Functions for making a vocabulary of all the words of the twitter data
+                
+                1. Use the CountVectoriser to create a Document-Term matrix
+                2. We specify to only include words that appear in less than 80% of and appear in at least 2 documents
+            """
+
             # https://stackabuse.com/python-for-nlp-topic-modeling/
-            # count_vect = CountVectorizer(max_df=0.8, min_df=2, stop_words='english')
             count_vect = CountVectorizer(max_df=0.8, min_df=2)
             doc_term_matrix = count_vect.fit_transform(df["text"].values.astype('U'))
 
+            """
+                Latent Dirilchet Allocation use
+                
+                1. Include the number of topics we want to create
+                2. Create a Visualisation in pyLDAvis
+            """
             # Create 10 Topics
             number_of_topics = 10
 
             LDA = LatentDirichletAllocation(n_components=number_of_topics, learning_method='online', random_state=42,
                                             n_jobs=-1)
             LDA_output = LDA.fit(doc_term_matrix)
-            # print(LDA_output)
-
-            """
-            for i, topic in enumerate(LDA.components_):
-                print(f"Top 10 words for topic #{i}")
-                print([count_vect.get_feature_names()[i] for i in topic.argsort()[-10:]])
-                print("\n")"""
-
-            # Visualise the topics
-            # pyLDAvis.enable_notebook()
 
             visualisation = pyLDAvis.sklearn.prepare(LDA_output, doc_term_matrix, count_vect, mds='tsne')
             # visualisation = pyLDAvis.gensim.prepare(lda_model, corpus, dictionary)
-            pyLDAvis.save_html(visualisation, 'Visualisations/LDA_Visualization.html')
+            pyLDAvis.save_html(visualisation, 'LDA_Visualization.html')
 
         except FileNotFoundError as e:
             msg.showerror('Error opening file', e)
